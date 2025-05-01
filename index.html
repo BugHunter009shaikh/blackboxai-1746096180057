@@ -13,40 +13,77 @@
   <style>
     body {
       font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #e0f2fe, #bae6fd);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 1rem;
     }
     .chat-container {
       max-width: 600px;
-      margin: 2rem auto;
-      background: #f9fafb;
-      border-radius: 0.5rem;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      width: 100%;
+      background: white;
+      border-radius: 0.75rem;
+      box-shadow: 0 10px 15px rgba(59, 130, 246, 0.3);
       display: flex;
       flex-direction: column;
       height: 80vh;
+      overflow: hidden;
+    }
+    header {
+      background-color: #2563eb;
+      color: white;
+      padding: 1rem 1.5rem;
+      border-radius: 0.75rem 0.75rem 0 0;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 1.25rem;
+      font-weight: 600;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    header img {
+      height: 32px;
+      width: 32px;
+      object-fit: contain;
+      border-radius: 0.25rem;
+      background: white;
+      padding: 2px;
     }
     .chat-messages {
       flex-grow: 1;
       overflow-y: auto;
-      padding: 1rem;
+      padding: 1rem 1.5rem;
+      background: #f9fafb;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
     }
     .chat-input {
       border-top: 1px solid #e5e7eb;
-      padding: 1rem;
+      padding: 1rem 1.5rem;
       display: flex;
-      gap: 0.5rem;
+      gap: 0.75rem;
+      background: white;
     }
     .chat-message {
-      margin-bottom: 1rem;
       display: flex;
       gap: 0.75rem;
       align-items: flex-start;
+      opacity: 0;
+      animation: fadeIn 0.4s forwards;
+    }
+    .chat-message.user {
+      justify-content: flex-end;
     }
     .chat-message.user .message-content {
-      background-color: #3b82f6;
+      background-color: #2563eb;
       color: white;
       border-radius: 1rem 1rem 0 1rem;
       padding: 0.75rem 1rem;
       max-width: 75%;
+      box-shadow: 0 2px 6px rgba(37, 99, 235, 0.4);
     }
     .chat-message.bot .message-content {
       background-color: #e5e7eb;
@@ -54,22 +91,69 @@
       border-radius: 1rem 1rem 1rem 0;
       padding: 0.75rem 1rem;
       max-width: 75%;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
     }
-  </style>
+    @keyframes fadeIn {
+      to {
+        opacity: 1;
+      }
+    }
+    .loading {
+      display: inline-block;
+      width: 1rem;
+      height: 1rem;
+      border: 2px solid #2563eb;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-left: 0.5rem;
+    }
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+    #clearBtn {
+      background: transparent;
+      border: none;
+      color: white;
+      cursor: pointer;
+      font-size: 1.25rem;
+      margin-left: auto;
+      transition: color 0.3s ease;
+    }
+    #clearBtn:hover {
+      color: #93c5fd;
+    }
+    input:disabled {
+      background-color: #e0e7ff;
+      cursor: not-allowed;
+    }
+    @media (max-width: 640px) {
+      .chat-container {
+        height: 90vh;
+      }
+    }
+   </style>
 </head>
-<body class="bg-gray-100">
-  <div class="chat-container">
-    <header class="bg-blue-600 text-white p-4 rounded-t-md text-center text-xl font-semibold">
+<body>
+  <div class="chat-container" role="main" aria-label="Chatbot for Army Public School Panagarh">
+    <header>
+      <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/Indian_Army_Logo.svg/1200px-Indian_Army_Logo.svg.png" alt="Army Public School Panagarh Logo" />
       Army Public School Panagarh - Admission Chatbot
+      <button id="clearBtn" aria-label="Clear chat" title="Clear chat">
+        <i class="fas fa-trash-alt"></i>
+      </button>
     </header>
-    <div id="chatMessages" class="chat-messages"></div>
-    <form id="chatForm" class="chat-input" autocomplete="off">
+    <div id="chatMessages" class="chat-messages" tabindex="0" aria-live="polite" aria-relevant="additions"></div>
+    <form id="chatForm" class="chat-input" autocomplete="off" aria-label="Send a message">
       <input
         id="chatInput"
         type="text"
         placeholder="Type your message..."
         class="flex-grow border border-gray-300 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
         required
+        aria-required="true"
       />
       <button
         type="submit"
@@ -85,17 +169,39 @@
     const chatForm = document.getElementById('chatForm');
     const chatInput = document.getElementById('chatInput');
     const chatMessages = document.getElementById('chatMessages');
+    const clearBtn = document.getElementById('clearBtn');
 
-    function appendMessage(sender, message) {
+    function appendMessage(sender, message, isLoading = false) {
       const messageElem = document.createElement('div');
       messageElem.classList.add('chat-message', sender);
       const contentElem = document.createElement('div');
       contentElem.classList.add('message-content');
       contentElem.textContent = message;
       messageElem.appendChild(contentElem);
+
+      if (isLoading) {
+        const loadingSpinner = document.createElement('span');
+        loadingSpinner.classList.add('loading');
+        contentElem.appendChild(loadingSpinner);
+      }
+
       chatMessages.appendChild(messageElem);
       chatMessages.scrollTop = chatMessages.scrollHeight;
     }
+
+    function clearChat() {
+      chatMessages.innerHTML = '';
+      appendWelcomeMessage();
+      chatInput.focus();
+    }
+
+    function appendWelcomeMessage() {
+      const welcomeText = "Hello! I am the Army Public School Panagarh admission assistant. How can I help you today?";
+      appendMessage('bot', welcomeText);
+    }
+
+    // Initial welcome message
+    appendWelcomeMessage();
 
     chatForm.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -105,6 +211,9 @@
       appendMessage('user', message);
       chatInput.value = '';
       chatInput.disabled = true;
+
+      // Show loading message
+      appendMessage('bot', '...', true);
 
       try {
         const response = await fetch('http://localhost:3000/chat', {
@@ -118,15 +227,32 @@
         }
 
         const data = await response.json();
-        appendMessage('bot', data.reply);
+
+        // Remove loading message
+        const loadingMessages = chatMessages.querySelectorAll('.chat-message.bot .message-content span.loading');
+        loadingMessages.forEach((loadingSpan) => {
+          const parent = loadingSpan.parentElement;
+          if (parent) {
+            parent.textContent = data.reply;
+          }
+        });
       } catch (error) {
-        appendMessage('bot', 'Sorry, there was an error processing your request.');
+        // Remove loading message and show error
+        const loadingMessages = chatMessages.querySelectorAll('.chat-message.bot .message-content span.loading');
+        loadingMessages.forEach((loadingSpan) => {
+          const parent = loadingSpan.parentElement;
+          if (parent) {
+            parent.textContent = 'Sorry, there was an error processing your request.';
+          }
+        });
         console.error('Error:', error);
       } finally {
         chatInput.disabled = false;
         chatInput.focus();
       }
     });
+
+    clearBtn.addEventListener('click', clearChat);
   </script>
 </body>
 </html>

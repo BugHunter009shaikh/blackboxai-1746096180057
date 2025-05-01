@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Army Public School Panagarh Chatbot</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter&display=swap" rel="stylesheet" />
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+  />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    .chat-container {
+      max-width: 600px;
+      margin: 2rem auto;
+      background: #f9fafb;
+      border-radius: 0.5rem;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      display: flex;
+      flex-direction: column;
+      height: 80vh;
+    }
+    .chat-messages {
+      flex-grow: 1;
+      overflow-y: auto;
+      padding: 1rem;
+    }
+    .chat-input {
+      border-top: 1px solid #e5e7eb;
+      padding: 1rem;
+      display: flex;
+      gap: 0.5rem;
+    }
+    .chat-message {
+      margin-bottom: 1rem;
+      display: flex;
+      gap: 0.75rem;
+      align-items: flex-start;
+    }
+    .chat-message.user .message-content {
+      background-color: #3b82f6;
+      color: white;
+      border-radius: 1rem 1rem 0 1rem;
+      padding: 0.75rem 1rem;
+      max-width: 75%;
+    }
+    .chat-message.bot .message-content {
+      background-color: #e5e7eb;
+      color: #374151;
+      border-radius: 1rem 1rem 1rem 0;
+      padding: 0.75rem 1rem;
+      max-width: 75%;
+    }
+  </style>
+</head>
+<body class="bg-gray-100">
+  <div class="chat-container">
+    <header class="bg-blue-600 text-white p-4 rounded-t-md text-center text-xl font-semibold">
+      Army Public School Panagarh - Admission Chatbot
+    </header>
+    <div id="chatMessages" class="chat-messages"></div>
+    <form id="chatForm" class="chat-input" autocomplete="off">
+      <input
+        id="chatInput"
+        type="text"
+        placeholder="Type your message..."
+        class="flex-grow border border-gray-300 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        required
+      />
+      <button
+        type="submit"
+        class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition"
+        aria-label="Send message"
+      >
+        <i class="fas fa-paper-plane"></i>
+      </button>
+    </form>
+  </div>
+
+  <script>
+    const chatForm = document.getElementById('chatForm');
+    const chatInput = document.getElementById('chatInput');
+    const chatMessages = document.getElementById('chatMessages');
+
+    function appendMessage(sender, message) {
+      const messageElem = document.createElement('div');
+      messageElem.classList.add('chat-message', sender);
+      const contentElem = document.createElement('div');
+      contentElem.classList.add('message-content');
+      contentElem.textContent = message;
+      messageElem.appendChild(contentElem);
+      chatMessages.appendChild(messageElem);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    chatForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const message = chatInput.value.trim();
+      if (!message) return;
+
+      appendMessage('user', message);
+      chatInput.value = '';
+      chatInput.disabled = true;
+
+      try {
+        const response = await fetch('http://localhost:3000/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+
+        const data = await response.json();
+        appendMessage('bot', data.reply);
+      } catch (error) {
+        appendMessage('bot', 'Sorry, there was an error processing your request.');
+        console.error('Error:', error);
+      } finally {
+        chatInput.disabled = false;
+        chatInput.focus();
+      }
+    });
+  </script>
+</body>
+</html>
